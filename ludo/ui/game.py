@@ -293,19 +293,15 @@ def _render_endgame(room: GameRoom, session_id: str) -> None:
                 st.rerun()
 
 
-_DICE_CSS_INJECTED_KEY = "_cheeky_ludo_dice_css_injected"
-
-
 def _inject_dice_css() -> None:
-    """Inject dice-styling CSS once per page render. Targets containers keyed by state.
-
-    Streamlit assigns each container with key=K a CSS class `st-key-K`, so we hook
+    """Inject dice-styling CSS on every rerun. Streamlit re-renders markdown by
+    position, so a one-shot session-state guard would drop the styles after the
+    first run. Targets containers keyed by state — Streamlit assigns each
+    container with key=K a CSS class `st-key-K`, so we hook
     `dice-frame-rolling-*`, `dice-frame-clickable-*`, and `dice-frame-static-*`
-    independently. The `[class*=...]` selector picks up the version-suffixed variants.
+    independently. The `[class*=...]` selector picks up the version-suffixed
+    variants.
     """
-    if st.session_state.get(_DICE_CSS_INJECTED_KEY):
-        return
-    st.session_state[_DICE_CSS_INJECTED_KEY] = True
     st.markdown(
         """
         <style>
