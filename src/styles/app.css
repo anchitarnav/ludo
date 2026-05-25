@@ -1,0 +1,281 @@
+:root {
+  --bg: #0f172a;
+  --panel: #1e293b;
+  --panel-2: #334155;
+  --fg: #f1f5f9;
+  --muted: #94a3b8;
+  --accent: #facc15;
+  --primary: #38bdf8;
+  --error: #f87171;
+  --border: #475569;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
+    Cantarell, "Helvetica Neue", sans-serif;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+  background: var(--bg);
+  color: var(--fg);
+}
+
+body {
+  font-size: 16px;
+  line-height: 1.45;
+}
+
+h1, h2, h3 {
+  margin: 0 0 0.4em;
+  font-weight: 600;
+}
+
+button {
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  color: var(--fg);
+  padding: 0.55rem 0.95rem;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: background 120ms ease, opacity 120ms ease;
+}
+
+button:hover:not(:disabled) {
+  background: #475569;
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+button.primary {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #0f172a;
+}
+
+button.primary:hover:not(:disabled) {
+  background: #7dd3fc;
+}
+
+button.secondary {
+  background: transparent;
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+button.ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--muted);
+}
+
+button.small {
+  font-size: 0.85rem;
+  padding: 0.35rem 0.7rem;
+}
+
+input.code-input {
+  flex: 1;
+  padding: 0.55rem 0.75rem;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--fg);
+  border-radius: 6px;
+  font-size: 1.1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.centered {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+}
+
+.card-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 420px;
+}
+
+.card {
+  background: var(--panel);
+  padding: 1rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.row.spaced {
+  justify-content: space-between;
+}
+
+.muted {
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.error {
+  color: var(--error);
+  font-size: 0.9rem;
+}
+
+.uid {
+  display: inline-block;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  padding: 0.5rem 0.7rem;
+  border-radius: 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.9rem;
+  word-break: break-all;
+}
+
+.room-code {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.room-code strong {
+  font-size: 1.4rem;
+  letter-spacing: 0.15em;
+  color: var(--fg);
+}
+
+.lobby {
+  padding: 1rem;
+  margin: 0 auto;
+  max-width: 480px;
+}
+
+.seat-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.seat {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.6rem 0.8rem;
+  background: var(--panel);
+  border: 2px solid var(--border);
+  border-radius: 8px;
+}
+
+.seat-name {
+  flex: 1;
+}
+
+.swatch {
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 0, 0, 0.3);
+}
+
+.game-view {
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  max-width: 720px;
+  margin: 0 auto;
+  position: relative;
+}
+
+.board-wrap {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.board {
+  width: min(96vw, 86vh, 640px);
+  height: auto;
+  background: #f8fafc;
+  border-radius: 8px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+
+.dice-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.die {
+  width: 3rem;
+  height: 3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 1.6rem;
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.78);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 50;
+}
+
+.overlay .card-stack {
+  background: var(--panel);
+  padding: 1.4rem;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+
+.overlay ol {
+  padding-left: 1.2rem;
+}
+
+@media (max-width: 480px) {
+  body {
+    font-size: 15px;
+  }
+  .room-code strong {
+    font-size: 1.2rem;
+  }
+}
