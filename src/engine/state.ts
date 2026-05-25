@@ -26,18 +26,45 @@ export interface DiceState {
   rolledAt: number;
 }
 
+export type FavorKind =
+  | "lucky_sixes"
+  | "stuck_on_ones"
+  | "guaranteed_kill"
+  | "home_stretch_sprint"
+  | "stay_home";
+
+export interface ActiveFavor {
+  kind: FavorKind;
+  targetSeat: number;
+  rollsRemaining: number;
+  rollsAffected: number;
+}
+
+export interface FavorState {
+  active: ActiveFavor | null;
+  cooldownRolls: number;
+  rollCounter: number;
+}
+
+export interface FavorLogEntry {
+  kind: FavorKind;
+  targetSeat: number;
+  rollsAffected: number;
+  endedAtVersion: number;
+}
+
 export interface RoomState {
   hostUid: string;
   phase: Phase;
-  botMode: BotMode | null;
+  botMode: BotMode;
   seed: number | null;
   version: number;
   turn: Turn;
   dice: DiceState | null;
   seats: Seat[];
   finishOrder: number[];
-  favorState: null;
-  favorLog: unknown[];
+  favorState: FavorState | null;
+  favorLog: FavorLogEntry[];
 }
 
 export interface Capture {

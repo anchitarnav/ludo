@@ -1,7 +1,14 @@
 import { useState } from "react";
 import { COLOR_HEX } from "../engine";
-import type { RoomState } from "../engine";
-import { beginGame, joinSeat, leaveRoomSeat } from "../rooms/roomStore";
+import type { BotMode, RoomState } from "../engine";
+import { beginGame, chooseBotMode, joinSeat, leaveRoomSeat } from "../rooms/roomStore";
+
+const BOT_MODE_LABELS: Record<BotMode, string> = {
+  neutral: "Neutral — honest dice, random play",
+  killer: "Killer — chases captures",
+  defensive: "Defensive — plays it safe",
+  cheeky: "Cheeky — the dice has a mind of its own",
+};
 
 interface Props {
   roomCode: string;
@@ -14,7 +21,8 @@ interface Props {
 export function Lobby({ roomCode, state, uid, sessionId, displayName }: Props) {
   const [busy, setBusy] = useState(false);
   const isHost = state.hostUid === uid;
-  const occupied = state.seats.filter((s) => s.kind !== "empty").length;
+  const humans = state.seats.filter((s) => s.kind === "human").length;
+  const empties = state.seats.filter((s) => s.kind === "empty").length;
   const mySeatIndex = state.seats.findIndex((s) => s.sessionId === sessionId);
 
   async function claim(seatIndex: number) {
@@ -44,6 +52,15 @@ export function Lobby({ roomCode, state, uid, sessionId, displayName }: Props) {
     }
   }
 
+  async function pickMode(mode: BotMode) {
+    setBusy(true);
+    try {
+      await chooseBotMode(roomCode, uid, mode);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   function copyInvite() {
     navigator.clipboard.writeText(window.location.href);
   }
@@ -67,7 +84,11 @@ export function Lobby({ roomCode, state, uid, sessionId, displayName }: Props) {
           <li key={i} className="seat" style={{ borderColor: COLOR_HEX[seat.color] }}>
             <span className="swatch" style={{ background: COLOR_HEX[seat.color] }} />
             <span className="seat-name">
-              {seat.kind === "empty" ? <em>empty</em> : seat.displayName ?? "—"}
+              {seat.kind === "empty" ? (
+                <em className="muted">empty → bot on start</em>
+              ) : (
+                seat.displayName ?? "—"
+              )}
             </span>
             {seat.kind === "empty" && mySeatIndex === -1 && (
               <button className="primary small" disabled={busy} onClick={() => claim(i)}>
@@ -83,13 +104,33 @@ export function Lobby({ roomCode, state, uid, sessionId, displayName }: Props) {
         ))}
       </ul>
 
+      <div className="card">
+        <label className="muted" htmlFor="bot-mode">Bot mode (room-wide)</label>
+        {isHost ? (
+          <select
+            id="bot-mode"
+            className="select"
+            value={state.botMode}
+            disabled={busy}
+            onChange={(e) => pickMode(e.target.value as BotMode)}
+          >
+            {(Object.keys(BOT_MODE_LABELS) as BotMode[]).map((m) => (
+              <option key={m} value={m}>{BOT_MODE_LABELS[m]}</option>
+            ))}
+          </select>
+        ) : (
+          <div className="muted">{BOT_MODE_LABELS[state.botMode]}</div>
+        )}
+        {empties > 0 && (
+          <p className="muted small-note">
+            {empties} empty seat{empties === 1 ? "" : "s"} will be filled with bots when the host starts.
+          </p>
+        )}
+      </div>
+
       {isHost && (
-        <button
-          className="primary"
-          disabled={busy || occupied < 1}
-          onClick={start}
-        >
-          {occupied < 1 ? "Need at least 1 player" : "Start game"}
+        <button className="primary" disabled={busy || humans < 1} onClick={start}>
+          {humans < 1 ? "Need at least 1 human" : "Start game"}
         </button>
       )}
 

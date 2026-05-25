@@ -11,13 +11,20 @@ import { db } from "../firebase";
 import {
   claimSeat,
   createInitialRoom,
+  endGameNow,
   handleMove,
   handleRoll,
+  initialFavorState,
   leaveSeat,
   legalMoves,
+  mulberry32,
+  pickBotMove,
   pickSeed,
   resetToLobby,
+  setBotMode,
   startGame,
+  tickFavor,
+  type BotMode,
   type Move,
   type RoomState,
 } from "../engine";
@@ -115,11 +122,28 @@ export function leaveRoomSeat(
   });
 }
 
+export function chooseBotMode(roomCode: string, hostUid: string, mode: BotMode): Promise<void> {
+  return mutate(roomCode, (s) => {
+    if (s.hostUid !== hostUid) return null;
+    if (s.phase !== "lobby") return null;
+    if (s.botMode === mode) return null;
+    return setBotMode(s, hostUid, mode);
+  });
+}
+
 export function beginGame(roomCode: string, hostUid: string): Promise<void> {
   return mutate(roomCode, (s) => {
     if (s.hostUid !== hostUid) return null;
     if (s.phase !== "lobby") return null;
     return startGame(s, hostUid, pickSeed());
+  });
+}
+
+export function endGame(roomCode: string, hostUid: string): Promise<void> {
+  return mutate(roomCode, (s) => {
+    if (s.hostUid !== hostUid) return null;
+    if (s.phase !== "playing") return null;
+    return endGameNow(s, hostUid);
   });
 }
 
@@ -131,14 +155,29 @@ export function returnToLobby(roomCode: string, hostUid: string): Promise<void> 
   });
 }
 
+function applyRoll(state: RoomState, honest: number): RoomState {
+  const seat = state.turn.seat;
+  let value = honest;
+  let favorState = state.favorState;
+  let favorLog = state.favorLog;
+  if (state.botMode === "cheeky") {
+    const out = tickFavor(state, state.favorState ?? initialFavorState(), state.favorLog ?? [], seat, honest);
+    value = out.value;
+    favorState = out.favorState;
+    favorLog = out.favorLog;
+  }
+  const rolled = handleRoll(state, value, Date.now());
+  return { ...rolled, favorState, favorLog };
+}
+
 export function rollDice(roomCode: string, sessionId: string): Promise<void> {
   return mutate(roomCode, (s) => {
     if (s.phase !== "playing") return null;
     const activeSeat = s.seats[s.turn.seat];
     if (!activeSeat || activeSeat.sessionId !== sessionId) return null;
-    if (s.dice) return null; // already rolled, awaiting move
-    const dice = 1 + Math.floor(Math.random() * 6);
-    return handleRoll(s, dice, Date.now());
+    if (s.dice) return null;
+    const honest = 1 + Math.floor(Math.random() * 6);
+    return applyRoll(s, honest);
   });
 }
 
@@ -157,5 +196,33 @@ export function commitMove(
     );
     if (!candidate) return null;
     return handleMove(s, candidate);
+  });
+}
+
+// --- Bot turn driver (host-only client driving) ---
+
+export function botRoll(roomCode: string, expectedVersion: number): Promise<void> {
+  return mutate(roomCode, (s) => {
+    if (s.version !== expectedVersion) return null;
+    if (s.phase !== "playing") return null;
+    const seat = s.seats[s.turn.seat];
+    if (seat.kind !== "bot") return null;
+    if (s.dice) return null;
+    const honest = 1 + Math.floor(Math.random() * 6);
+    return applyRoll(s, honest);
+  });
+}
+
+export function botMove(roomCode: string, expectedVersion: number): Promise<void> {
+  return mutate(roomCode, (s) => {
+    if (s.version !== expectedVersion) return null;
+    if (s.phase !== "playing") return null;
+    const seat = s.seats[s.turn.seat];
+    if (seat.kind !== "bot") return null;
+    if (!s.dice) return null;
+    const rng = mulberry32(((s.seed ?? 0) ^ 0xdeadbeef ^ s.version) >>> 0);
+    const move = pickBotMove(s, s.turn.seat, s.dice.value, s.botMode, rng);
+    if (!move) return null;
+    return handleMove(s, move);
   });
 }

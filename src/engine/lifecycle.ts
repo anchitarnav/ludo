@@ -1,5 +1,6 @@
 import { SEAT_COLOR, YARD } from "./board";
-import type { Pieces, RoomState, Seat } from "./state";
+import { initialFavorState } from "./favors";
+import type { BotMode, Pieces, RoomState, Seat } from "./state";
 
 const EMPTY_PIECES: Pieces = [YARD, YARD, YARD, YARD];
 
@@ -16,7 +17,7 @@ export function createInitialRoom(hostUid: string): RoomState {
   return {
     hostUid,
     phase: "lobby",
-    botMode: null,
+    botMode: "neutral",
     seed: null,
     version: 1,
     turn: { seat: 0, sixesInRow: 0, extraTurn: false },
@@ -70,14 +71,32 @@ export function leaveSeat(state: RoomState, seatIndex: number, sessionId: string
   return { ...state, version: state.version + 1, seats };
 }
 
+export function setBotMode(state: RoomState, hostUid: string, mode: BotMode): RoomState {
+  if (state.phase !== "lobby") throw new Error("cannot change bot mode mid-game");
+  if (state.hostUid !== hostUid) throw new Error("only host can set bot mode");
+  return { ...state, version: state.version + 1, botMode: mode };
+}
+
 export function startGame(state: RoomState, hostUid: string, seed: number): RoomState {
   if (state.phase !== "lobby") throw new Error("game already started");
   if (state.hostUid !== hostUid) throw new Error("only host can start");
-  const occupied = state.seats
-    .map((s, i) => ({ s, i }))
-    .filter(({ s }) => s.kind !== "empty");
-  if (occupied.length < 1) throw new Error("need at least 1 player");
-  const firstSeat = occupied[0].i;
+  const humans = state.seats.filter((s) => s.kind === "human");
+  if (humans.length < 1) throw new Error("need at least 1 human player");
+
+  const seats: Seat[] = state.seats.map((s, i) =>
+    s.kind === "empty"
+      ? {
+          ...s,
+          kind: "bot" as const,
+          uid: null,
+          sessionId: null,
+          displayName: `Bot ${i + 1}`,
+        }
+      : s,
+  );
+
+  const firstSeat = seats.findIndex((s) => s.kind !== "empty");
+  const isCheeky = state.botMode === "cheeky";
   return {
     ...state,
     version: state.version + 1,
@@ -85,15 +104,37 @@ export function startGame(state: RoomState, hostUid: string, seed: number): Room
     seed,
     turn: { seat: firstSeat, sixesInRow: 0, extraTurn: false },
     dice: null,
+    seats,
     finishOrder: [],
+    favorState: isCheeky ? initialFavorState() : null,
+    favorLog: [],
+  };
+}
+
+export function endGameNow(state: RoomState, hostUid: string): RoomState {
+  if (state.hostUid !== hostUid) throw new Error("only host can end the game");
+  if (state.phase !== "playing") throw new Error("can only end during play");
+  return {
+    ...state,
+    version: state.version + 1,
+    phase: "ended",
+    dice: null,
   };
 }
 
 export function resetToLobby(state: RoomState): RoomState {
-  const seats = state.seats.map((s) => ({
-    ...s,
-    pieces: [...EMPTY_PIECES] as Pieces,
-  }));
+  const seats = state.seats.map((s) =>
+    s.kind === "bot"
+      ? {
+          ...s,
+          kind: "empty" as const,
+          uid: null,
+          sessionId: null,
+          displayName: null,
+          pieces: [...EMPTY_PIECES] as Pieces,
+        }
+      : { ...s, pieces: [...EMPTY_PIECES] as Pieces },
+  );
   return {
     ...state,
     version: state.version + 1,
@@ -103,6 +144,7 @@ export function resetToLobby(state: RoomState): RoomState {
     dice: null,
     seats,
     finishOrder: [],
+    favorState: null,
     favorLog: [],
   };
 }
